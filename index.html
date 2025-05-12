@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合租卫生轮值表</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .current {
+            background-color: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .next {
+            background-color: #f0f0f0;
+            border-left: 4px solid #7f8c8d;
+            padding: 15px;
+        }
+        .person {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .date {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .today {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 30px;
+            border-top: 1px dashed #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>合租卫生轮值表</h1>
+    <div class="today" id="todayDate"></div>
+    
+    <div class="container">
+        <div class="current" id="currentInfo">
+            <!-- 当前信息将通过JavaScript动态生成 -->
+        </div>
+        
+        <div class="next" id="nextInfo">
+            <!-- 下次信息将通过JavaScript动态生成 -->
+        </div>
+    </div>
+    
+    <div class="note">
+        <p>轮值规则：每周日由胡萝卜须、干嘛、张强、虚传四人轮流打扫卫生，按此顺序循环。</p>
+        <p>基准日：2025年5月11日（周日）由胡萝卜须打扫卫生。</p>
+    </div>
+
+    <script>
+        // 合租人员列表
+        const people = ['胡萝卜须', '干嘛', '张强', '虚传'];
+        
+        // 固定基准日期：2025年5月11日（周日）由胡萝卜须打扫
+        const referenceDate = new Date('2025-05-11');
+        const referencePersonIndex = 0; // 胡萝卜须
+        
+        // 获取当前日期
+        const today = new Date();
+        
+        // 显示当前日期
+        document.getElementById('todayDate').textContent = `今天是：${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+        
+        // 计算从基准日期到目标日期的完整周数
+        function getWeekCount(startDate, endDate) {
+            // 确保开始日期是周日
+            startDate = new Date(startDate);
+            startDate.setHours(0, 0, 0, 0);
+            
+            // 调整结束日期时间为中午12点，避免时区问题
+            endDate = new Date(endDate);
+            endDate.setHours(12, 0, 0, 0);
+            
+            // 计算两个日期之间的毫秒差
+            const timeDiff = endDate - startDate;
+            
+            // 计算完整的天数
+            const dayDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            
+            // 计算完整的周数
+            const weekDiff = Math.floor(dayDiff / 7);
+            
+            return weekDiff;
+        }
+        
+        // 获取本周日的日期
+        function getThisSunday(currentDate) {
+            const date = new Date(currentDate);
+            const day = date.getDay(); // 0是周日，1是周一，...，6是周六
+            
+            if (day === 0) {
+                // 已经是周日，直接返回
+                return date;
+            } else {
+                // 计算到本周日的天数
+                const daysUntilSunday = 7 - day;
+                date.setDate(date.getDate() + daysUntilSunday);
+                return date;
+            }
+        }
+        
+        // 计算当前负责的人
+        function getCurrentPerson(currentDate) {
+            // 找到当前日期所在周的周日
+            const thisSunday = getThisSunday(currentDate);
+            
+            // 计算从基准日期到这个周日的完整周数
+            const weekCount = getWeekCount(referenceDate, thisSunday);
+            
+            // 计算负责人索引
+            const personIndex = (referencePersonIndex + weekCount) % people.length;
+            return {
+                person: people[personIndex],
+                date: thisSunday
+            };
+        }
+        
+        // 获取下一个负责的人
+        function getNextPerson(currentDate) {
+            const currentInfo = getCurrentPerson(currentDate);
+            const nextSunday = new Date(currentInfo.date);
+            nextSunday.setDate(nextSunday.getDate() + 7);
+            
+            const weekCount = getWeekCount(referenceDate, nextSunday);
+            const personIndex = (referencePersonIndex + weekCount) % people.length;
+            
+            return {
+                person: people[personIndex],
+                date: nextSunday
+            };
+        }
+        
+        // 格式化日期显示
+        function formatDate(date) {
+            return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+        
+        // 更新页面信息
+        function updatePage() {
+            const today = new Date();
+            const currentDay = today.getDay(); // 0-6，0是周日
+            const isSunday = currentDay === 0;
+            
+            const currentInfo = getCurrentPerson(today);
+            const nextInfo = getNextPerson(today);
+            
+            const currentInfoElement = document.getElementById('currentInfo');
+            const nextInfoElement = document.getElementById('nextInfo');
+            
+            if (isSunday && today.getDate() === currentInfo.date.getDate()) {
+                currentInfoElement.innerHTML = `
+                    <p>今天是周日（${formatDate(currentInfo.date)}），轮到 <span class="person">${currentInfo.person}</span> 打扫卫生。</p>
+                `;
+            } else {
+                const daysUntilSunday = (7 - currentDay) % 7;
+                currentInfoElement.innerHTML = `
+                    <p>本周日（${formatDate(currentInfo.date)}）将由 <span class="person">${currentInfo.person}</span> 打扫卫生。</p>
+                `;
+            }
+            
+            nextInfoElement.innerHTML = `
+                <p>下次打扫：<span class="date">${formatDate(nextInfo.date)}</span>（周日），由 <span class="person">${nextInfo.person}</span> 负责。</p>
+            `;
+        }
+        
+        // 初始化页面
+        updatePage();
+    </script>
+</body>
+</html>
